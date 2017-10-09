@@ -1,5 +1,6 @@
 #include "Piezas.h"
 #include <vector>
+#include <assert.h>
 /** CLASS Piezas
  * Class for representing a Piezas vertical board, which is roughly based
  * on the game "Connect Four" where pieces are placed in a column and 
@@ -22,6 +23,8 @@
 **/
 Piezas::Piezas()
 {
+    board.resize(BOARD_ROWS, std::vector<Piece>(BOARD_COLS, Blank));
+    turn = X;
 }
 
 /**
@@ -30,6 +33,8 @@ Piezas::Piezas()
 **/
 void Piezas::reset()
 {
+    board.clear();
+    board.resize(BOARD_ROWS, std::vector<Piece>(BOARD_COLS, Blank));
 }
 
 /**
@@ -42,6 +47,37 @@ void Piezas::reset()
 **/ 
 Piece Piezas::dropPiece(int column)
 {
+    //out of bounds
+    if(column > BOARD_COLS-1 || column < 0) {
+        if (turn == X) {
+            turn = O;
+        }
+        else {
+            turn = X;
+        }
+        return Invalid;
+    }
+    
+    for(int i = 0; i < BOARD_ROWS; i++) {
+        if(board[i][column] == Blank) {
+            board[i][column] = turn; //set board spot to turn
+            if(turn == X) {
+                turn = O;
+                return X;
+            } else {
+                turn = X;
+                return O;
+            }
+        }
+    }
+    
+    //column full
+    if (turn == X) {
+        turn = O;
+    }
+    else {
+        turn = X; //lose turn
+    }
     return Blank;
 }
 
@@ -51,7 +87,11 @@ Piece Piezas::dropPiece(int column)
 **/
 Piece Piezas::pieceAt(int row, int column)
 {
-    return Blank;
+    //invalid if out of bounds
+    if(row > BOARD_ROWS-1 || row < 0 || column > BOARD_COLS-1 || column < 0 )
+        return Invalid;
+
+    return board[row][column];
 }
 
 /**
@@ -65,5 +105,79 @@ Piece Piezas::pieceAt(int row, int column)
 **/
 Piece Piezas::gameState()
 {
+    //Game not over
+    for(int i = 0; i < BOARD_ROWS; i++) {
+        for(int j = 0; j < BOARD_COLS; j++) {
+            if(board[i][j] == Blank)
+                return Invalid;
+        }
+    }
+    int xStreak = 0;
+    int oStreak = 0;
+    int curStreak = 0;
+    Piece previous;
+    //check columns
+    for(int i = 0; i < BOARD_COLS; i++) {
+        curStreak = 0;
+        previous = board[0][i];
+
+        for(int j = 0; j < BOARD_ROWS-1; j++) {
+            assert(j+1 < 3 /*col first*/);
+            if(previous == board[j+1][i]) {
+                curStreak++; //add 1
+                if(previous == X) {
+                    if(curStreak > xStreak) {
+                        xStreak = curStreak; //up x streak
+                    }
+                }
+                else if(previous == O) {
+                    if(curStreak > oStreak) {
+                        oStreak = curStreak;
+                    }
+                }
+            }
+            else if(previous != board[j+1][i]) {
+                curStreak = 0;
+            }
+            previous = board[j+1][i];    
+        }
+    }
+    
+    //check rows
+    for(int i = 0; i < BOARD_ROWS; i++) {
+        curStreak = 0;
+        previous = board[i][0];
+
+        for(int j = 0; j < BOARD_COLS-1; j++) {
+            assert(j+1 < 4);
+            if(previous == board[i][j+1]) {
+                curStreak++; //add 1
+                if(previous == X) {
+                    if(curStreak > xStreak) {
+                        xStreak = curStreak; //up x streak
+                    }
+                }
+                else if(previous == O) {
+                    if(curStreak > oStreak) {
+                        oStreak = curStreak;
+                    }
+                }
+            }
+            else if(previous != board[i][j+1]) {
+                curStreak = 0;
+            }
+            previous = board[i][j+1];    
+        }
+    }
+    
+    if(xStreak > oStreak) {
+        return X;
+    }
+    else if(oStreak > xStreak) {
+        return O;
+    }
+    else {
+        return Blank;
+    }
     return Blank;
 }
